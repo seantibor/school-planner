@@ -1,149 +1,141 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pine Crest Planner Generator</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <main class="container">
-      <header class="hero">
-        <h1>Pine Crest Weekly Planner</h1>
-        <p class="tagline">
-          Generate a printable, executive-functioning focused planner from your kid's real
-          schedule. One link, one click, one PDF.
-        </p>
-      </header>
 
-      <!-- Generator Form -->
-      <section class="card generator" aria-labelledby="gen-heading">
-        <h2 id="gen-heading">Generate Your Planner</h2>
-        <form id="planner-form" novalidate>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Planner Generator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <main class="container">
+    <header class="hero">
+      <h1>Weekly Planner Generator</h1>
+      <p class="tagline">
+        Generate a printable, executive-functioning focused planner from your kid's real
+        schedule. One link, one click, one PDF.
+      </p>
+    </header>
+
+    <!-- Generator Form -->
+    <section class="card generator" aria-labelledby="gen-heading">
+      <h2 id="gen-heading">Generate Your Planner</h2>
+      <form id="planner-form" novalidate>
+        <div class="field">
+          <label for="ics-url">ICS Calendar Feed URL</label>
+          <input type="url" id="ics-url" name="ics_url"
+            placeholder="https://yourschool.myschoolapp.com/podium/feed/iCal.aspx?z=..." required autocomplete="off" />
+          <small class="hint">Paste the full URL from Blackbaud (see instructions below)</small>
+        </div>
+        <div class="field-row">
           <div class="field">
-            <label for="ics-url">ICS Calendar Feed URL</label>
-            <input
-              type="url"
-              id="ics-url"
-              name="ics_url"
-              placeholder="https://pinecrest.myschoolapp.com/podium/feed/iCal.aspx?z=..."
-              required
-              autocomplete="off"
-            />
-            <small class="hint">Paste the full URL from Blackbaud (see instructions below)</small>
+            <label for="student-name">Student First Name <span class="optional">(optional)</span></label>
+            <input type="text" id="student-name" name="student_name" placeholder="e.g. Kaden"
+              autocomplete="given-name" />
           </div>
-          <div class="field-row">
-            <div class="field">
-              <label for="student-name">Student First Name <span class="optional">(optional)</span></label>
-              <input
-                type="text"
-                id="student-name"
-                name="student_name"
-                placeholder="e.g. Kaden"
-                autocomplete="given-name"
-              />
-            </div>
-            <div class="field">
-              <label for="grade">Grade <span class="optional">(optional)</span></label>
-              <select id="grade" name="grade">
-                <option value="">—</option>
-                <option value="6">6th</option>
-                <option value="7">7th</option>
-                <option value="8">8th</option>
-              </select>
-            </div>
+          <div class="field">
+            <label for="grade">Grade <span class="optional">(optional)</span></label>
+            <select id="grade" name="grade">
+              <option value="">—</option>
+              <option value="6">6th</option>
+              <option value="7">7th</option>
+              <option value="8">8th</option>
+            </select>
           </div>
-          <button type="submit" class="btn-primary" id="submit-btn">
-            <span class="btn-text">Generate Planner</span>
-            <span class="btn-spinner" aria-hidden="true" hidden></span>
-          </button>
-        </form>
-        <div id="status" class="status" role="status" aria-live="polite" hidden></div>
-      </section>
+        </div>
+        <button type="submit" class="btn-primary" id="submit-btn">
+          <span class="btn-text">Generate Planner</span>
+          <span class="btn-spinner" aria-hidden="true" hidden></span>
+        </button>
+      </form>
+      <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+    </section>
 
-      <!-- Instructions -->
-      <section class="card" aria-labelledby="instructions-heading">
-        <h2 id="instructions-heading">How to Find Your ICS Feed URL</h2>
-        <ol class="instructions">
-          <li>
-            Log in to <strong>Blackbaud</strong> (myschoolapp.com) with your parent account.
-          </li>
-          <li>
-            Navigate to your student's <strong>Calendar</strong> page.
-          </li>
-          <li>
-            Look for a link or button labeled <strong>"Subscribe to Calendar"</strong>,
-            <strong>"iCal Feed"</strong>, or <strong>"Export"</strong> — it's usually in
-            the top-right area or under a settings/gear icon.
-          </li>
-          <li>
-            <strong>Copy the URL</strong> it gives you. It will look something like:<br />
-            <code>https://pinecrest.myschoolapp.com/podium/feed/iCal.aspx?z=abc123...</code>
-          </li>
-          <li>
-            Paste that URL into the field above and click <strong>Generate Planner</strong>.
-          </li>
-        </ol>
-        <p class="note">
-          The URL acts as a private key to your child's calendar. We never store it — see
-          our privacy policy below.
-        </p>
-      </section>
+    <!-- Instructions -->
+    <section class="card" aria-labelledby="instructions-heading">
+      <h2 id="instructions-heading">How to Find Your ICS Feed URL</h2>
+      <ol class="instructions">
+        <li>
+          Log in to <strong>Blackbaud</strong> (myschoolapp.com) with your parent account.
+        </li>
+        <li>
+          Navigate to your student's <strong>Calendar</strong> page.
+        </li>
+        <li>
+          Look for a link or button labeled <strong>"Subscribe to Calendar"</strong>,
+          <strong>"iCal Feed"</strong>, or <strong>"Export"</strong> — it's usually in
+          the top-right area or under a settings/gear icon.
+        </li>
+        <li>
+          <strong>Copy the URL</strong> it gives you. It will look something like:<br />
+          <code>https://yourschool.myschoolapp.com/podium/feed/iCal.aspx?z=abc123...</code>
+        </li>
+        <li>
+          Paste that URL into the field above and click <strong>Generate Planner</strong>.
+        </li>
+      </ol>
+      <p class="note">
+        The URL acts as a private key to your child's calendar. We never store it — see
+        our privacy policy below.
+      </p>
+    </section>
 
-      <!-- Privacy & Security -->
-      <section class="card card--privacy" aria-labelledby="privacy-heading">
-        <h2 id="privacy-heading">Privacy &amp; Security</h2>
-        <p>We take your family's data seriously. Here's exactly what happens:</p>
-        <ul>
-          <li>
-            <strong>Your ICS URL is never stored, logged, or retained.</strong> It is used
-            for a single fetch to read your child's schedule, then immediately discarded.
-          </li>
-          <li>
-            <strong>Schedule data never touches a database or file system.</strong> It exists
-            only in memory for the few seconds it takes to generate your PDF.
-          </li>
-          <li>
-            <strong>No analytics, no tracking, no cookies.</strong> This page is static HTML.
-          </li>
-          <li>
-            <strong>The code is open source.</strong> You can verify every claim by reading
-            the <a href="https://github.com/YOUR_ORG/school-planner" target="_blank" rel="noopener">public repository</a>.
-          </li>
-          <li>
-            <strong>API Gateway logging is explicitly disabled</strong> for request/response
-            bodies so your URL cannot accidentally end up in cloud logs.
-          </li>
-        </ul>
-      </section>
+    <!-- Privacy & Security -->
+    <section class="card card--privacy" aria-labelledby="privacy-heading">
+      <h2 id="privacy-heading">Privacy &amp; Security</h2>
+      <p>We take your family's data seriously. Here's exactly what happens:</p>
+      <ul>
+        <li>
+          <strong>Your ICS URL is never stored, logged, or retained.</strong> It is used
+          for a single fetch to read your child's schedule, then immediately discarded.
+        </li>
+        <li>
+          <strong>Schedule data never touches a database or file system.</strong> It exists
+          only in memory for the few seconds it takes to generate your PDF.
+        </li>
+        <li>
+          <strong>No analytics, no tracking, no cookies.</strong> This page is static HTML.
+        </li>
+        <li>
+          <strong>The code is open source.</strong> You can verify every claim by reading
+          the <a href="https://github.com/YOUR_ORG/school-planner" target="_blank" rel="noopener">public repository</a>.
+        </li>
+        <li>
+          <strong>API Gateway logging is explicitly disabled</strong> for request/response
+          bodies so your URL cannot accidentally end up in cloud logs.
+        </li>
+      </ul>
+    </section>
 
-      <!-- Disclaimer -->
-      <section class="card card--disclaimer" aria-labelledby="disclaimer-heading">
-        <h2 id="disclaimer-heading">Disclaimer</h2>
-        <p>
-          This is a community project built by Pine Crest parents for fun. It is
-          <strong>not affiliated with, endorsed by, or supported by Pine Crest School</strong>
-          or Blackbaud.
-        </p>
-        <p>
-          <strong>No warranty. No service level guarantee.</strong> The tool is provided
-          "as is" without warranty of any kind. It may break, go offline, or produce
-          incorrect output at any time. Use at your own discretion.
-        </p>
-        <p>
-          If something looks wrong with your planner, double-check your ICS URL and try
-          again. For persistent issues, file an issue on the GitHub repo.
-        </p>
-      </section>
+    <!-- Disclaimer -->
+    <section class="card card--disclaimer" aria-labelledby="disclaimer-heading">
+      <h2 id="disclaimer-heading">Disclaimer</h2>
+      <p>
+        This is a community project built by parents for fun. It is
+        <strong>not affiliated with, endorsed by, or supported by any school</strong>
+        or Blackbaud.
+      </p>
+      <p>
+        <strong>No warranty. No service level guarantee.</strong> The tool is provided
+        "as is" without warranty of any kind. It may break, go offline, or produce
+        incorrect output at any time. Use at your own discretion.
+      </p>
+      <p>
+        If something looks wrong with your planner, double-check your ICS URL and try
+        again. For persistent issues, file an issue on the GitHub repo.
+      </p>
+    </section>
 
-      <footer>
-        <p>
-          Built with care by Pine Crest parents &middot;
-          <a href="https://github.com/YOUR_ORG/school-planner" target="_blank" rel="noopener">Source on GitHub</a>
-        </p>
-      </footer>
-    </main>
+    <footer>
+      <p>
+        Built with care by parents &middot;
+        <a href="https://github.com/YOUR_ORG/school-planner" target="_blank" rel="noopener">Source on GitHub</a>
+      </p>
+    </footer>
+  </main>
 
-    <script src="app.js"></script>
-  </body>
+  <script src="app.js"></script>
+</body>
+
 </html>

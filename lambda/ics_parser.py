@@ -1,4 +1,4 @@
-"""ICS feed parsing for Pine Crest middle school Blackbaud/Podium calendars.
+"""ICS feed parsing for Blackbaud/Podium school calendars.
 
 Implements the logic from spec §3.4 and §4:
 - Separates all-day marker events (day-type labels) from timed period events
@@ -25,9 +25,7 @@ _TRAILING_GRADE_SUFFIX_RE = re.compile(r"-\d+$")
 # Matches patterns like "Monday (BRMS)", "Wednesday A (BRMS)", etc.
 # The division code in parens is ignored (not hardcoded to "BRMS").
 _DAY_TYPE_RE = re.compile(
-    r"^(Monday|Tuesday|Wednesday|Thursday|Friday)"
-    r"(?:\s+(A|B))?"
-    r"\s*\(.*\)\s*$",
+    r"^(Monday|Tuesday|Wednesday|Thursday|Friday)" r"(?:\s+(A|B))?" r"\s*\(.*\)\s*$",
     re.IGNORECASE,
 )
 
@@ -201,7 +199,12 @@ def parse_schedule(ics_text: str) -> dict[str, list[dict[str, str]]]:
 
         # Strip internal sorting key
         clean_periods = [
-            {"period": p["period"], "name": p["name"], "start": p["start"], "end": p["end"]}
+            {
+                "period": p["period"],
+                "name": p["name"],
+                "start": p["start"],
+                "end": p["end"],
+            }
             for p in sorted_periods
         ]
         schedule[day_type] = clean_periods

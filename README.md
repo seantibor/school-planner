@@ -1,6 +1,6 @@
-# Pine Crest Weekly Planner Generator
+# Weekly Planner Generator
 
-A small web tool for Pine Crest middle-school families. Paste your kid's
+A small web tool for middle-school families. Paste your kid's
 Blackbaud/Podium ICS calendar feed URL, click Generate, and download a
 printable executive-functioning focused weekly planner PDF customized to
 their actual schedule.
@@ -126,8 +126,8 @@ terraform apply
 
 ## Disclaimer
 
-This is a community project built by Pine Crest parents for fun. It is **not
-affiliated with, endorsed by, or supported by Pine Crest School** or Blackbaud.
+This is a community project built by parents for fun. It is **not
+affiliated with, endorsed by, or supported by any school** or Blackbaud.
 
 **No warranty. No service level guarantee.** The tool is provided "as is"
 without warranty of any kind. It may break, go offline, or produce incorrect

@@ -40,7 +40,7 @@ def fetch_ics(url: str) -> str:
         response = requests.get(
             url,
             timeout=_FETCH_TIMEOUT_SECONDS,
-            headers={"User-Agent": "PineCrestPlannerBot/1.0"},
+            headers={"User-Agent": "SchoolPlannerBot/1.0"},
         )
     except requests.exceptions.Timeout:
         raise FetchError(

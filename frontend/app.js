@@ -1,5 +1,5 @@
 /**
- * Pine Crest Planner Generator — Client-side logic.
+ * School Planner Generator — Client-side logic.
  *
  * Non-blocking async form submission. No frameworks, no dependencies.
  * Sends the ICS URL to the API, receives a PDF blob, triggers download.

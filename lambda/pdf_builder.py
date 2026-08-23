@@ -1,4 +1,4 @@
-"""PDF planner generation for Pine Crest middle school students.
+"""PDF planner generation for middle school students.
 
 Generalized from the approved build_ef_planner.py prototype. Takes a parsed
 schedule dict (from ics_parser.parse_schedule) plus student name/grade and
@@ -274,13 +274,15 @@ class _SubjectColorMap:
 def _overview_page(student_name: str, grade: int | None) -> list[Any]:
     story: list[Any] = []
 
-    title = f"{student_name}\u2019s Weekly Planner" if student_name else "Weekly Planner"
+    title = (
+        f"{student_name}\u2019s Weekly Planner" if student_name else "Weekly Planner"
+    )
     story.append(Paragraph(title, _title_style))
 
     grade_label = f"{grade}th Grade" if grade else "Middle School"
     story.append(
         Paragraph(
-            f"Pine Crest {grade_label} &nbsp;\u2014&nbsp; Overview &amp; Planning Page",
+            f"{grade_label} &nbsp;\u2014&nbsp; Overview &amp; Planning Page",
             _subtitle_style,
         )
     )
@@ -336,7 +338,12 @@ def _overview_page(student_name: str, grade: int | None) -> list[Any]:
     story.append(
         _blank_rule_table(
             4,
-            ["Subject", "Topic", "Test Date", "Study Days Planned (write which nights)"],
+            [
+                "Subject",
+                "Topic",
+                "Test Date",
+                "Study Days Planned (write which nights)",
+            ],
             [1.4 * inch, 2.0 * inch, 1.1 * inch, 3.0 * inch],
         )
     )
@@ -347,7 +354,12 @@ def _overview_page(student_name: str, grade: int | None) -> list[Any]:
     story.append(
         _blank_rule_table(
             4,
-            ["Subject", "Assignment", "Due Date", "Steps / Checkpoints (3-4 mini-deadlines)"],
+            [
+                "Subject",
+                "Assignment",
+                "Due Date",
+                "Steps / Checkpoints (3-4 mini-deadlines)",
+            ],
             [1.4 * inch, 2.0 * inch, 1.1 * inch, 3.0 * inch],
         )
     )
@@ -424,13 +436,16 @@ def _daily_page(
 
     # Top 3 priorities
     story.append(
-        _section_bar("TODAY'S TOP 3 PRIORITIES  (pick the most important things to get done)")
+        _section_bar(
+            "TODAY'S TOP 3 PRIORITIES  (pick the most important things to get done)"
+        )
     )
     pri_rows = [
         [
             _checkbox_cell(),
             Paragraph(
-                f"{i}.  ___________________________________________________", _check_text_style
+                f"{i}.  ___________________________________________________",
+                _check_text_style,
             ),
         ]
         for i in range(1, 4)
@@ -452,7 +467,13 @@ def _daily_page(
     story.append(_section_bar("CLASS-BY-CLASS HOMEWORK LOG"))
     header = [
         Paragraph(h, _table_header_style)
-        for h in ["Class", "Homework / Assignment", "Due Date", "Materials Needed", "Done"]
+        for h in [
+            "Class",
+            "Homework / Assignment",
+            "Due Date",
+            "Materials Needed",
+            "Done",
+        ]
     ]
     data: list[list[Any]] = [header]
     row_colors = []
