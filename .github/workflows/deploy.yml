@@ -1,0 +1,109 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+# Only one deploy at a time
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # Deploy infrastructure (module handles Lambda packaging)
+  deploy-infra:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      api_url: ${{ steps.tofu-output.outputs.api_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python 3.14
+        run: uv python install 3.14
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "~> 1.12"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-2
+
+      - name: Tofu Init
+        working-directory: infra
+        run: |
+          tofu init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=school-planner/terraform.tfstate" \
+            -backend-config="region=us-east-2"
+
+      - name: Tofu Plan
+        working-directory: infra
+        run: tofu plan -out=tfplan
+
+      - name: Tofu Apply
+        working-directory: infra
+        run: tofu apply -auto-approve tfplan
+
+      - name: Export API URL
+        id: tofu-output
+        working-directory: infra
+        run: |
+          API_URL=$(tofu output -raw api_url)
+          echo "api_url=${API_URL}/generate" >> "$GITHUB_OUTPUT"
+
+  # Deploy frontend to GitHub Pages (with API URL injected from infra output)
+  deploy-pages:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: deploy-infra
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject API URL into frontend
+        run: |
+          sed -i 's|__API_URL__|${{ needs.deploy-infra.outputs.api_url }}|g' frontend/app.js
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Create a release when a tag is pushed
+  release:
+    name: Create Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [deploy-infra, deploy-pages]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
