@@ -119,7 +119,7 @@ cd package && zip -r ../package.zip . && cd ..
 cd ../infra
 terraform init -backend-config="bucket=YOUR_BUCKET" \
                -backend-config="key=school-planner/terraform.tfstate" \
-               -backend-config="region=us-east-1"
+               -backend-config="region=us-east-2"
 terraform plan
 terraform apply
 ```
