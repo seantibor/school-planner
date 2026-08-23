@@ -44,8 +44,8 @@ jobs:
       - name: Run tests
         run: uv run pytest --tb=short
 
-  terraform-validate:
-    name: Terraform Validate
+  tofu-validate:
+    name: OpenTofu Validate
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -53,15 +53,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: opentofu/setup-opentofu@v1
         with:
-          terraform_version: "~> 1.9"
+          tofu_version: "~> 1.12"
 
-      - name: Terraform Init (backend=false for validation only)
-        run: terraform init -backend=false
+      - name: Tofu Init (backend=false for validation only)
+        run: tofu init -backend=false
 
-      - name: Terraform Validate
-        run: terraform validate
+      - name: Tofu Validate
+        run: tofu validate
 
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive
+      - name: Tofu Format Check
+        run: tofu fmt -check -recursive

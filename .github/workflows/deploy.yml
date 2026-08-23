@@ -21,6 +21,8 @@ jobs:
     name: Deploy Infrastructure
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      api_url: ${{ steps.tofu-output.outputs.api_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,9 +32,9 @@ jobs:
       - name: Set up Python 3.14
         run: uv python install 3.14
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: opentofu/setup-opentofu@v1
         with:
-          terraform_version: "~> 1.9"
+          tofu_version: "~> 1.12"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -40,23 +42,30 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-2
 
-      - name: Terraform Init
+      - name: Tofu Init
         working-directory: infra
         run: |
-          terraform init \
+          tofu init \
             -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
             -backend-config="key=school-planner/terraform.tfstate" \
             -backend-config="region=us-east-2"
 
-      - name: Terraform Plan
+      - name: Tofu Plan
         working-directory: infra
-        run: terraform plan -out=tfplan
+        run: tofu plan -out=tfplan
 
-      - name: Terraform Apply
+      - name: Tofu Apply
         working-directory: infra
-        run: terraform apply -auto-approve tfplan
+        run: tofu apply -auto-approve tfplan
 
-  # Deploy frontend to GitHub Pages
+      - name: Export API URL
+        id: tofu-output
+        working-directory: infra
+        run: |
+          API_URL=$(tofu output -raw api_url)
+          echo "api_url=${API_URL}/generate" >> "$GITHUB_OUTPUT"
+
+  # Deploy frontend to GitHub Pages (with API URL injected from infra output)
   deploy-pages:
     name: Deploy Frontend
     runs-on: ubuntu-latest
@@ -66,6 +75,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Inject API URL into frontend
+        run: |
+          sed -i 's|__API_URL__|${{ needs.deploy-infra.outputs.api_url }}|g' frontend/app.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

@@ -34,7 +34,7 @@ lambda/             AWS Lambda function — ICS parsing + PDF generation
   ics_fetch.py      Server-side ICS URL fetch (CORS workaround)
   handler.py        Lambda entry point — validation, orchestration
   tests/            pytest test suite with synthetic fixtures
-infra/              Terraform — API Gateway + Lambda + IAM
+infra/              OpenTofu — API Gateway + Lambda + IAM
 .github/workflows/  CI (lint/test) + CD (deploy infra + Pages)
 ```
 
@@ -42,7 +42,7 @@ infra/              Terraform — API Gateway + Lambda + IAM
 
 - **Frontend:** Vanilla HTML/CSS/JS on GitHub Pages
 - **Backend:** Python 3.14 on AWS Lambda
-- **Infra:** Terraform, deployed via GitHub Actions
+- **Infra:** OpenTofu, deployed via GitHub Actions
 - **PDF:** reportlab (Helvetica base14, no external fonts)
 - **ICS Parsing:** icalendar library
 - **Toolchain:** uv, ruff, pytest, pre-commit, prettier
@@ -52,7 +52,7 @@ infra/              Terraform — API Gateway + Lambda + IAM
 ### Prerequisites
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
-- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
+- [OpenTofu](https://opentofu.org/docs/intro/install/) >= 1.6
 - Node.js (for prettier, via pre-commit)
 
 ### Getting Started
@@ -95,8 +95,8 @@ response = handler(event, None)
 
 Deployment is automated via GitHub Actions on push to `main`:
 
-1. **CI** runs on all PRs: ruff lint/format, prettier, pytest, terraform validate
-2. **Deploy** runs on merge to main: packages Lambda, applies Terraform, deploys frontend to Pages
+1. **CI** runs on all PRs: ruff lint/format, prettier, pytest, tofu validate
+2. **Deploy** runs on merge to main: packages Lambda, applies OpenTofu, deploys frontend to Pages
 3. **Releases** are created when you push a `v*` tag
 
 ### Required GitHub Secrets
@@ -104,18 +104,18 @@ Deployment is automated via GitHub Actions on push to `main`:
 | Secret                | Purpose                              |
 | --------------------- | ------------------------------------ |
 | `AWS_DEPLOY_ROLE_ARN` | IAM role ARN for OIDC-based AWS auth |
-| `TF_STATE_BUCKET`     | S3 bucket for Terraform remote state |
+| `TF_STATE_BUCKET`     | S3 bucket for OpenTofu remote state |
 
 ### Manual Deploy
 
 ```bash
-# Apply Terraform (handles Lambda packaging automatically)
+# Apply OpenTofu (handles Lambda packaging automatically)
 cd infra
-terraform init -backend-config="bucket=YOUR_BUCKET" \
+tofu init -backend-config="bucket=YOUR_BUCKET" \
                -backend-config="key=school-planner/terraform.tfstate" \
                -backend-config="region=us-east-2"
-terraform plan
-terraform apply
+tofu plan
+tofu apply
 ```
 
 ## Disclaimer

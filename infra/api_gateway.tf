@@ -38,8 +38,8 @@ resource "aws_apigatewayv2_stage" "default" {
   # No access_log_settings block — this is intentional, not an oversight.
   # Do NOT add logging here without reviewing the privacy requirements.
 
-  throttling_settings {
-    burst_limit = 10
-    rate_limit  = 5
+  default_route_settings {
+    throttling_burst_limit = 10
+    throttling_rate_limit  = 5
   }
 }

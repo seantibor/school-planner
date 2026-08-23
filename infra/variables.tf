@@ -13,6 +13,5 @@ variable "environment" {
 variable "frontend_origin" {
   description = "GitHub Pages origin URL for CORS (no trailing slash)"
   type        = string
-  # TODO: Replace with actual GitHub Pages URL once known
-  default = "https://YOUR_ORG.github.io"
+  default     = "https://seantibor.github.io"
 }

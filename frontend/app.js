@@ -8,8 +8,8 @@
 (function () {
   "use strict";
 
-  // TODO: Replace with actual deployed API URL
-  const API_URL = "https://YOUR_API_GATEWAY_URL/generate";
+  // Injected at deploy time by CI/CD (see .github/workflows/deploy.yml)
+  const API_URL = "__API_URL__";
 
   const form = document.getElementById("planner-form");
   const submitBtn = document.getElementById("submit-btn");

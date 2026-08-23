@@ -1,14 +1,13 @@
 terraform {
-  required_version = ">= 1.5"
+  required_version = ">= 1.6"
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
   }
 
-  # Remote state — configure bucket/key via backend config or CI env vars
   backend "s3" {}
 }
 
@@ -18,7 +17,7 @@ provider "aws" {
   default_tags {
     tags = {
       Project     = "school-planner"
-      ManagedBy   = "terraform"
+      ManagedBy   = "opentofu"
       Environment = var.environment
     }
   }
