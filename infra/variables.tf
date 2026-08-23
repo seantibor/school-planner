@@ -16,9 +16,3 @@ variable "frontend_origin" {
   # TODO: Replace with actual GitHub Pages URL once known
   default = "https://YOUR_ORG.github.io"
 }
-
-variable "lambda_zip_path" {
-  description = "Path to the packaged Lambda zip file"
-  type        = string
-  default     = "../lambda/package.zip"
-}

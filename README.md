@@ -109,14 +109,8 @@ Deployment is automated via GitHub Actions on push to `main`:
 ### Manual Deploy
 
 ```bash
-# Package Lambda
-cd lambda
-uv pip install --target package -r requirements.txt
-cp *.py package/
-cd package && zip -r ../package.zip . && cd ..
-
-# Apply Terraform
-cd ../infra
+# Apply Terraform (handles Lambda packaging automatically)
+cd infra
 terraform init -backend-config="bucket=YOUR_BUCKET" \
                -backend-config="key=school-planner/terraform.tfstate" \
                -backend-config="region=us-east-2"
