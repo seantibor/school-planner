@@ -274,9 +274,7 @@ class _SubjectColorMap:
 def _overview_page(student_name: str, grade: int | None) -> list[Any]:
     story: list[Any] = []
 
-    title = (
-        f"{student_name}\u2019s Weekly Planner" if student_name else "Weekly Planner"
-    )
+    title = f"{student_name}\u2019s Weekly Planner" if student_name else "Weekly Planner"
     story.append(Paragraph(title, _title_style))
 
     grade_label = f"{grade}th Grade" if grade else "Middle School"
@@ -436,9 +434,7 @@ def _daily_page(
 
     # Top 3 priorities
     story.append(
-        _section_bar(
-            "TODAY'S TOP 3 PRIORITIES  (pick the most important things to get done)"
-        )
+        _section_bar("TODAY'S TOP 3 PRIORITIES  (pick the most important things to get done)")
     )
     pri_rows = [
         [
