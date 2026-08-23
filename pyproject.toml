@@ -1,0 +1,28 @@
+[project]
+name = "school-planner"
+version = "0.1.0"
+description = "Pine Crest Middle School weekly planner PDF generator"
+requires-python = ">=3.14"
+dependencies = ["icalendar==7.2.2", "reportlab==5.0", "requests==2.32.3"]
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.5", "ruff==0.16.0", "pre-commit==4.2.0"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = ["build_ef_planner.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "A", "SIM", "S"]
+ignore = ["S104", "S113", "N999"]
+
+[tool.ruff.lint.per-file-ignores]
+"lambda/tests/*" = ["S101"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["lambda/tests"]
