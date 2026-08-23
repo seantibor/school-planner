@@ -12,3 +12,10 @@ repos:
       - id: prettier
         types_or: [html, css, javascript, json, yaml, markdown]
         exclude: "^lambda/"
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.99.0
+    hooks:
+      - id: terraform_fmt
+        args: [--args=-recursive]
+        files: \.tf$
