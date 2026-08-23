@@ -22,9 +22,7 @@ jobs:
           args: format --check
 
       - name: Prettier (frontend)
-        uses: actionsx/prettier@v3
-        with:
-          args: --check frontend/
+        run: npx prettier@3 --check frontend/
 
   test:
     name: Test
