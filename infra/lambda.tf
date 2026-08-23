@@ -21,7 +21,7 @@ module "lambda" {
   # No CloudWatch Logs — privacy hard requirement.
   # The ICS URL and schedule data must never appear in any log.
   attach_cloudwatch_logs_policy           = false
-  cloudwatch_logs_retention_in_days       = null
+  create_cloudwatch_log_group             = false
   create_current_version_allowed_triggers = false
 
   environment_variables = {

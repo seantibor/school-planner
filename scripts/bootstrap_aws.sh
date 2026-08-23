@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Bootstrap AWS resources needed before the first Terraform apply.
-# Run this once. Requires the AWS CLI configured with admin-ish credentials.
+# Bootstrap AWS resources needed before the first OpenTofu apply.
+# Run this once. Requires the AWS CLI and GitHub CLI configured.
 #
 # What this creates:
-#   1. S3 bucket for Terraform state (versioned, encrypted)
+#   1. S3 bucket for OpenTofu state (versioned, encrypted)
 #   2. GitHub OIDC identity provider (if not already present)
 #   3. IAM role for GitHub Actions to assume (deploy permissions)
 #
@@ -26,8 +26,8 @@ echo "Account:    ${ACCOUNT_ID}"
 echo "TF Bucket:  ${BUCKET_NAME}"
 echo ""
 
-# --- 1. Terraform state bucket ---
-echo "→ Creating Terraform state bucket..."
+# --- 1. OpenTofu state bucket ---
+echo "→ Creating state bucket..."
 if aws s3api head-bucket --bucket "${BUCKET_NAME}" 2>/dev/null; then
     echo "  Bucket already exists, skipping."
 else
@@ -63,12 +63,30 @@ else
     echo "  Created."
 fi
 
-# --- 3. IAM deploy role ---
+# --- 3. Get GitHub repo IDs for immutable OIDC sub claims ---
+# Repos created after July 15 2026 use immutable subject claims:
+#   repo:OWNER@OWNER_ID/REPO@REPO_ID:*
+# instead of the old format:
+#   repo:OWNER/REPO:*
+echo ""
+echo "→ Fetching GitHub repo/owner IDs for OIDC trust policy..."
+OWNER_NAME=$(echo "${REPO}" | cut -d/ -f1)
+REPO_NAME=$(echo "${REPO}" | cut -d/ -f2)
+REPO_INFO=$(gh api "repos/${REPO}" --jq '{owner_id: .owner.id, repo_id: .id}')
+OWNER_ID=$(echo "${REPO_INFO}" | grep owner_id | tr -dc '0-9')
+REPO_ID=$(echo "${REPO_INFO}" | grep repo_id | tr -dc '0-9')
+echo "  Owner: ${OWNER_NAME}@${OWNER_ID}"
+echo "  Repo:  ${REPO_NAME}@${REPO_ID}"
+
+# --- 4. IAM deploy role ---
 echo ""
 echo "→ Creating GitHub Actions deploy role..."
 ROLE_NAME="school-planner-github-deploy"
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
 
+# Trust policy with BOTH sub formats for compatibility:
+# - Immutable format (repos created after July 15 2026)
+# - Legacy format (older repos or if immutable claims are disabled)
 TRUST_POLICY=$(cat <<EOF
 {
     "Version": "2012-10-17",
@@ -84,7 +102,10 @@ TRUST_POLICY=$(cat <<EOF
                     "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
                 },
                 "StringLike": {
-                    "token.actions.githubusercontent.com:sub": "repo:${REPO}:*"
+                    "token.actions.githubusercontent.com:sub": [
+                        "repo:${OWNER_NAME}@${OWNER_ID}/${REPO_NAME}@${REPO_ID}:*",
+                        "repo:${REPO}:*"
+                    ]
                 }
             }
         }
@@ -141,9 +162,26 @@ DEPLOY_POLICY=$(cat <<EOF
                 "iam:DetachRolePolicy",
                 "iam:PassRole",
                 "iam:ListRolePolicies",
-                "iam:ListAttachedRolePolicies"
+                "iam:ListAttachedRolePolicies",
+                "iam:TagRole",
+                "iam:UntagRole",
+                "iam:ListInstanceProfilesForRole"
             ],
             "Resource": "arn:aws:iam::${ACCOUNT_ID}:role/school-planner-*"
+        },
+        {
+            "Sid": "CloudWatchLogs",
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:DeleteLogGroup",
+                "logs:DescribeLogGroups",
+                "logs:ListTagsForResource",
+                "logs:TagResource",
+                "logs:UntagResource",
+                "logs:PutRetentionPolicy"
+            ],
+            "Resource": "arn:aws:logs:${REGION}:${ACCOUNT_ID}:log-group:/aws/lambda/school-planner-*"
         },
         {
             "Sid": "TerraformState",
@@ -165,7 +203,7 @@ EOF
 )
 
 if aws iam get-role --role-name "${ROLE_NAME}" >/dev/null 2>&1; then
-    echo "  Role already exists, updating trust policy..."
+    echo "  Role already exists, updating policies..."
     aws iam update-assume-role-policy \
         --role-name "${ROLE_NAME}" \
         --policy-document "${TRUST_POLICY}"
@@ -190,10 +228,7 @@ echo "Add these as GitHub repository secrets:"
 echo "  AWS_DEPLOY_ROLE_ARN = ${ROLE_ARN}"
 echo "  TF_STATE_BUCKET     = ${BUCKET_NAME}"
 echo ""
-echo "Then update infra/variables.tf:"
-echo "  frontend_origin = \"https://seantibor.github.io\""
-echo ""
-echo "First deploy:"
-echo "  cd infra && terraform init -backend-config=\"bucket=${BUCKET_NAME}\" -backend-config=\"key=school-planner/terraform.tfstate\" -backend-config=\"region=${REGION}\""
-echo "  terraform apply -var=\"frontend_origin=https://seantibor.github.io\""
-echo "  # Copy the api_url output into frontend/app.js"
+echo "Then merge a PR to main — GitHub Actions will handle the rest:"
+echo "  1. tofu apply (deploys API Gateway + Lambda)"
+echo "  2. Injects API URL into frontend"
+echo "  3. Deploys frontend to GitHub Pages"
