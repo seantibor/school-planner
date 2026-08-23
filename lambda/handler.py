@@ -4,11 +4,12 @@ Entry point: POST /generate
 Accepts JSON body with ics_url, optional student_name and grade.
 Returns PDF binary or a JSON error.
 
-PRIVACY HARD REQUIREMENTS:
-- The ICS URL is NEVER logged, stored, or persisted anywhere.
-- Schedule data exists only in memory for the duration of the request.
-- No print() or logging calls that could leak request content to CloudWatch.
-- API Gateway is configured (via Terraform) to suppress request/response logging.
+PRIVACY:
+- Operational logs are sent to CloudWatch with a 7-day retention.
+- All log output passes through a redacting filter (log_redact.py) that
+  strips URLs, email addresses, and name patterns before writing.
+- The raw ICS content and parsed schedule data are NEVER logged.
+- API Gateway request/response body logging remains disabled.
 """
 
 from __future__ import annotations
@@ -16,11 +17,19 @@ from __future__ import annotations
 import base64
 import json
 import re
+import time
 from typing import Any
 
 from ics_fetch import FetchError, fetch_ics
 from ics_parser import parse_schedule
+from log_redact import get_logger, install_redacting_filter
 from pdf_builder import build_pdf
+
+# Install redaction on the root logger's handlers at import time,
+# before any log output can escape unfiltered.
+install_redacting_filter()
+
+logger = get_logger(__name__)
 
 # Basic URL pattern for Blackbaud/Podium ICS feeds
 _ICS_URL_PATTERN = re.compile(r"^https://.*\.(myschoolapp|blackbaud)\.com/.*iCal", re.IGNORECASE)
@@ -77,6 +86,8 @@ def _validate_request(body: dict[str, Any]) -> tuple[str, str, int | None]:
 
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Lambda entry point. Processes a single PDF generation request."""
+    start = time.time()
+
     # Parse request body
     body_raw = event.get("body", "")
     if event.get("isBase64Encoded"):
@@ -85,31 +96,42 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     try:
         body = json.loads(body_raw) if body_raw else {}
     except json.JSONDecodeError:
+        logger.warning("Invalid JSON in request body")
         return _error_response(400, "Invalid JSON in request body.")
 
     # Validate
     try:
         ics_url, student_name, grade = _validate_request(body)
     except ValueError as e:
+        logger.info("Validation failed: %s", str(e))
         return _error_response(400, str(e))
 
-    # Fetch ICS (URL used here and nowhere else — never logged)
+    # Fetch ICS (URL is redacted if it appears in logs)
+    logger.info("Fetching ICS feed from %s", ics_url)
     try:
         ics_text = fetch_ics(ics_url)
     except FetchError as e:
+        logger.warning("Fetch failed: %s", str(e))
         return _error_response(e.status_code, str(e))
 
     # Parse schedule
     try:
         schedule = parse_schedule(ics_text)
     except ValueError as e:
+        logger.warning("Parse failed: %s", str(e))
         return _error_response(422, str(e))
+
+    logger.info("Schedule parsed: %d day-types found", len(schedule))
 
     # Generate PDF
     try:
         pdf_bytes = build_pdf(schedule, student_name=student_name, grade=grade)
     except Exception:
+        logger.exception("PDF generation failed")
         return _error_response(500, "An unexpected error occurred generating the PDF.")
+
+    elapsed = time.time() - start
+    logger.info("PDF generated: %d bytes in %.2fs", len(pdf_bytes), elapsed)
 
     # Return PDF
     filename = f"{student_name}_planner.pdf" if student_name else "planner.pdf"

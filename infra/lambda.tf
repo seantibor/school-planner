@@ -18,10 +18,11 @@ module "lambda" {
     }
   ]
 
-  # No CloudWatch Logs — privacy hard requirement.
-  # The ICS URL and schedule data must never appear in any log.
-  attach_cloudwatch_logs_policy           = false
-  create_cloudwatch_log_group             = false
+  # CloudWatch Logs — operational logging with short retention.
+  # The Lambda uses a redacting logger that strips URLs, emails, and names
+  # before anything reaches CloudWatch. See lambda/log_redact.py.
+  attach_cloudwatch_logs_policy           = true
+  cloudwatch_logs_retention_in_days       = 7
   create_current_version_allowed_triggers = false
 
   environment_variables = {
