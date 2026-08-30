@@ -77,12 +77,8 @@ class TestParseSchedule:
         """Spec §3.2: same subject can appear in different period slots on different days."""
         schedule = parse_schedule(synthetic_ics)
         # Life Science is period 5 on Monday, period 4 on Tuesday
-        mon_life_sci = next(
-            (p for p in schedule["Monday"] if p["name"] == "Life Science"), None
-        )
-        tue_life_sci = next(
-            (p for p in schedule["Tuesday"] if p["name"] == "Life Science"), None
-        )
+        mon_life_sci = next((p for p in schedule["Monday"] if p["name"] == "Life Science"), None)
+        tue_life_sci = next((p for p in schedule["Tuesday"] if p["name"] == "Life Science"), None)
         assert mon_life_sci is not None
         assert tue_life_sci is not None
         assert mon_life_sci["period"] == "5"

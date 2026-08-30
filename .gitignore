@@ -35,3 +35,4 @@ Thumbs.db
 # Environment (should never exist, but just in case)
 .env
 .env.*
+node_modules/

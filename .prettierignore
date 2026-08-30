@@ -1,0 +1,10 @@
+# Reference spec — kept in original formatting
+spec_from_claude.md
+
+# Python code is handled by ruff, not prettier
+lambda/
+
+# Build artifacts
+infra/.terraform/
+infra/builds/
+.venv/

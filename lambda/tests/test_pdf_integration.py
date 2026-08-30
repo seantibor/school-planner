@@ -65,9 +65,7 @@ class TestRealScheduleStructure:
                 # Start times should not go backwards
                 # We can't easily compare "8:00 AM" < "12:32 PM" as strings,
                 # so just verify no duplicates which would indicate parsing issues
-                assert (
-                    starts[i] != starts[i + 1]
-                ), f"{day_type}: duplicate start time {starts[i]}"
+                assert starts[i] != starts[i + 1], f"{day_type}: duplicate start time {starts[i]}"
 
 
 class TestAdvisoryAndLunchExclusion:
@@ -82,9 +80,9 @@ class TestAdvisoryAndLunchExclusion:
                 if not any(p["name"].startswith(exc) for exc in _EXCLUDED_SUBJECTS)
             ]
             names = [p["name"] for p in filtered]
-            assert not any(
-                n.startswith("Advisory") for n in names
-            ), f"{day_type} still has Advisory after filtering"
+            assert not any(n.startswith("Advisory") for n in names), (
+                f"{day_type} still has Advisory after filtering"
+            )
 
     def test_lunch_excluded(self, real_schedule: dict) -> None:
         for day_type, periods in real_schedule.items():
@@ -100,9 +98,7 @@ class TestAdvisoryAndLunchExclusion:
         """Monday has 10 total periods; after removing Advisory + Lunch = 8."""
         periods = real_schedule["Monday"]
         filtered = [
-            p
-            for p in periods
-            if not any(p["name"].startswith(exc) for exc in _EXCLUDED_SUBJECTS)
+            p for p in periods if not any(p["name"].startswith(exc) for exc in _EXCLUDED_SUBJECTS)
         ]
         assert len(filtered) == 8
 

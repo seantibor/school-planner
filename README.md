@@ -104,7 +104,7 @@ Deployment is automated via GitHub Actions on push to `main`:
 | Secret                | Purpose                              |
 | --------------------- | ------------------------------------ |
 | `AWS_DEPLOY_ROLE_ARN` | IAM role ARN for OIDC-based AWS auth |
-| `TF_STATE_BUCKET`     | S3 bucket for OpenTofu remote state |
+| `TF_STATE_BUCKET`     | S3 bucket for OpenTofu remote state  |
 
 ### Manual Deploy
 
