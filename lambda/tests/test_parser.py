@@ -16,6 +16,7 @@ class TestCleanCourseName:
             ("Pre-Algebra Honors - 2 Smith (2)", "Pre-Algebra Honors"),
             ("English - 3 (3)", "English"),
             ("Intro to Leadership - 4 (4)", "Intro to Leadership"),
+            ("Introduction to Leadership - 4 (4)", "Intro to Leadership"),
             ("Life Science - 5 (5)", "Life Science"),
             ("Spanish A - 6 (6)", "Spanish A"),
             ("Study Hall-6 - P5-T1 (5)", "Study Hall"),
@@ -76,8 +77,12 @@ class TestParseSchedule:
         """Spec §3.2: same subject can appear in different period slots on different days."""
         schedule = parse_schedule(synthetic_ics)
         # Life Science is period 5 on Monday, period 4 on Tuesday
-        mon_life_sci = next((p for p in schedule["Monday"] if p["name"] == "Life Science"), None)
-        tue_life_sci = next((p for p in schedule["Tuesday"] if p["name"] == "Life Science"), None)
+        mon_life_sci = next(
+            (p for p in schedule["Monday"] if p["name"] == "Life Science"), None
+        )
+        tue_life_sci = next(
+            (p for p in schedule["Tuesday"] if p["name"] == "Life Science"), None
+        )
         assert mon_life_sci is not None
         assert tue_life_sci is not None
         assert mon_life_sci["period"] == "5"

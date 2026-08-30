@@ -21,6 +21,10 @@ _TRAILING_TAG_RE = re.compile(r"\s*\(\w+\)\s*$")
 # Pattern for trailing grade/cohort suffix like "-6" on "Study Hall-6"
 _TRAILING_GRADE_SUFFIX_RE = re.compile(r"-\d+$")
 
+# Input length limits — prevents layout breakage and bounds memory usage
+_MAX_COURSE_NAME_LEN = 40
+_MAX_SUMMARY_LEN = 200  # raw ICS summary field before cleaning
+
 # Day-type detection from all-day marker event summaries.
 # Matches patterns like "Monday (BRMS)", "Wednesday A (BRMS)", etc.
 # The division code in parens is ignored (not hardcoded to "BRMS").
@@ -42,7 +46,7 @@ DAY_TYPE_ORDER = [
 
 # Known multi-grade elective names where trailing digits are part of the name,
 # not a grade suffix to strip (e.g. "Rock Band 678", "PCNN")
-_KNOWN_ELECTIVE_NAMES = {"Rock Band", "PCNN"}
+_KNOWN_ELECTIVE_NAMES = {"Rock Band", "PCNN", "Jazz Ensemble"}
 
 
 def clean_course_name(raw: str) -> str:
@@ -59,14 +63,20 @@ def clean_course_name(raw: str) -> str:
         "Advisory Grade 6 - Baena (Advisory)" -> "Advisory Grade 6"
     """
     # Strip trailing "(N)" or "(W)" tag
-    s = _TRAILING_TAG_RE.sub("", raw)
+    s = _TRAILING_TAG_RE.sub("", raw[:_MAX_SUMMARY_LEN])
     # Keep only text before first " - " (section/teacher/day-code detail)
     s = s.split(" - ")[0]
     # Strip trailing "-N" grade/cohort suffix, unless it's a known elective
     # where the trailing digits are part of the actual name
     if not any(s.startswith(name) for name in _KNOWN_ELECTIVE_NAMES):
         s = _TRAILING_GRADE_SUFFIX_RE.sub("", s)
-    return s.strip()
+    s = s.strip()
+    # Abbreviate common long prefixes that break table layout
+    s = re.sub(r"^Introduction to ", "Intro to ", s)
+    # Truncate to max display length
+    if len(s) > _MAX_COURSE_NAME_LEN:
+        s = s[: _MAX_COURSE_NAME_LEN - 1] + "\u2026"
+    return s
 
 
 def _extract_period_number(summary: str) -> str | None:
