@@ -482,7 +482,7 @@ def _daily_page(
         data.append([name_p, "", "", "", ""])
         row_colors.append(color_map.get(p["name"]))
 
-    col_widths = [1.5 * inch, 3.0 * inch, 0.85 * inch, 1.55 * inch, 0.4 * inch]
+    col_widths = [1.5 * inch, 2.95 * inch, 0.85 * inch, 1.5 * inch, 0.5 * inch]
     row_heights = [0.24 * inch] + [0.5 * inch] * len(periods)
     t = Table(data, colWidths=col_widths, rowHeights=row_heights, repeatRows=1)
     style_cmds: list[Any] = [
@@ -590,7 +590,9 @@ def build_pdf(
     for i, (day_display, suffix, schedule_key) in enumerate(page_configs):
         periods = schedule.get(schedule_key, [])
         # Filter out Advisory and Lunch from the homework log
-        filtered = [p for p in periods if p["name"] not in _EXCLUDED_SUBJECTS]
+        filtered = [
+            p for p in periods if not any(p["name"].startswith(exc) for exc in _EXCLUDED_SUBJECTS)
+        ]
         story.extend(_daily_page(day_display, suffix, filtered, color_map))
         if i < len(page_configs) - 1:
             story.append(PageBreak())

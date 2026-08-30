@@ -16,6 +16,7 @@ class TestCleanCourseName:
             ("Pre-Algebra Honors - 2 Smith (2)", "Pre-Algebra Honors"),
             ("English - 3 (3)", "English"),
             ("Intro to Leadership - 4 (4)", "Intro to Leadership"),
+            ("Introduction to Leadership - 4 (4)", "Intro to Leadership"),
             ("Life Science - 5 (5)", "Life Science"),
             ("Spanish A - 6 (6)", "Spanish A"),
             ("Study Hall-6 - P5-T1 (5)", "Study Hall"),

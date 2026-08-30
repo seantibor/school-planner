@@ -21,8 +21,8 @@ jobs:
         with:
           args: format --check
 
-      - name: Prettier (frontend)
-        run: npx prettier@3 --check frontend/
+      - name: Prettier
+        run: npx prettier@3 --check "**/*.{html,css,js,json,yaml,yml,md}"
 
   test:
     name: Test

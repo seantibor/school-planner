@@ -170,16 +170,24 @@ DEPLOY_POLICY=$(cat <<EOF
             "Resource": "arn:aws:iam::${ACCOUNT_ID}:role/school-planner-*"
         },
         {
-            "Sid": "CloudWatchLogs",
+            "Sid": "CloudWatchLogsDescribe",
+            "Effect": "Allow",
+            "Action": [
+                "logs:DescribeLogGroups"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "CloudWatchLogsManage",
             "Effect": "Allow",
             "Action": [
                 "logs:CreateLogGroup",
                 "logs:DeleteLogGroup",
-                "logs:DescribeLogGroups",
                 "logs:ListTagsForResource",
                 "logs:TagResource",
                 "logs:UntagResource",
-                "logs:PutRetentionPolicy"
+                "logs:PutRetentionPolicy",
+                "logs:ListTagsLogGroup"
             ],
             "Resource": "arn:aws:logs:${REGION}:${ACCOUNT_ID}:log-group:/aws/lambda/school-planner-*"
         },
