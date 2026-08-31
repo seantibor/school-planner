@@ -86,6 +86,47 @@ class TestHandlerSuccess:
         assert response["statusCode"] == 200
 
 
+class TestHandlerThemeAndBlocks:
+    """theme + combine_blocks request parameters."""
+
+    def test_theme_and_combine_blocks(self, synthetic_ics_text: str) -> None:
+        event = _make_event(
+            {
+                "ics_url": "https://school.myschoolapp.com/podium/feed/iCal.aspx?z=abc",
+                "theme": "video_games",
+                "combine_blocks": True,
+            }
+        )
+        with patch("handler.fetch_ics", return_value=synthetic_ics_text):
+            response = handler(event, None)
+        assert response["statusCode"] == 200
+        assert response["headers"]["Content-Type"] == "application/pdf"
+
+    def test_unknown_theme_still_succeeds(self, synthetic_ics_text: str) -> None:
+        """Unknown theme falls back to classic — not an error."""
+        event = _make_event(
+            {
+                "ics_url": "https://school.myschoolapp.com/podium/feed/iCal.aspx?z=abc",
+                "theme": "does-not-exist",
+            }
+        )
+        with patch("handler.fetch_ics", return_value=synthetic_ics_text):
+            response = handler(event, None)
+        assert response["statusCode"] == 200
+
+    def test_combine_blocks_as_string(self, synthetic_ics_text: str) -> None:
+        """combine_blocks accepts string 'true' (form-style)."""
+        event = _make_event(
+            {
+                "ics_url": "https://school.myschoolapp.com/podium/feed/iCal.aspx?z=abc",
+                "combine_blocks": "true",
+            }
+        )
+        with patch("handler.fetch_ics", return_value=synthetic_ics_text):
+            response = handler(event, None)
+        assert response["statusCode"] == 200
+
+
 class TestHandlerValidation:
     """Request validation — bad inputs return 400."""
 

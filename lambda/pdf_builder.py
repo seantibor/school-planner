@@ -9,7 +9,9 @@ Spec references: §5 (PDF Output Specification)
 
 from __future__ import annotations
 
+import html
 import io
+import random
 from typing import Any
 
 from reportlab.lib import colors
@@ -25,6 +27,8 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
+from themes import Theme, get_theme
+from themes.base import CLASSIC
 
 # ---------------------------------------------------------------------------
 # Design tokens (§5.2)
@@ -53,29 +57,8 @@ _COLOR_PALETTE = [
     colors.HexColor("#fce4ec"),  # rose
 ]
 
-# EF tips — one per weekday, shown on daily pages (§5.3)
-EF_TIPS = {
-    "Monday": (
-        "EF tip: Do a 2-minute \u201cbrain dump\u201d of everything due this week "
-        "before you start homework \u2014 it frees up mental energy for the actual work."
-    ),
-    "Tuesday": (
-        "EF tip: Start with your hardest or least-favorite subject first, "
-        "while your brain is freshest."
-    ),
-    "Wednesday": (
-        "EF tip: Big projects feel less overwhelming when you break them into "
-        "3\u20134 small steps with their own mini due-dates."
-    ),
-    "Thursday": (
-        "EF tip: Use Study Hall to work ahead on tomorrow\u2019s homework "
-        "\u2014 future-you will be grateful."
-    ),
-    "Friday": (
-        "EF tip: Before you close your backpack, check next week\u2019s "
-        "tests/projects box on the overview page so nothing sneaks up on you."
-    ),
-}
+# EF tips now live in the theme system (themes/). Each theme provides a pool
+# of tips per weekday, sampled at random per page for the "surprise" element.
 
 # Subjects to exclude from the homework log (not real class periods)
 _EXCLUDED_SUBJECTS = {"Advisory", "Lunch"}
@@ -159,6 +142,14 @@ _check_text_style = ParagraphStyle(
     parent=_base_styles["Normal"],
     fontSize=9,
     leading=12,
+)
+_egg_style = ParagraphStyle(
+    "planner_egg",
+    parent=_base_styles["Normal"],
+    fontSize=8,
+    textColor=GRAY,
+    fontName="Helvetica-Oblique",
+    leading=10,
 )
 
 
@@ -271,11 +262,15 @@ class _SubjectColorMap:
 # ---------------------------------------------------------------------------
 
 
-def _overview_page(student_name: str, grade: int | None) -> list[Any]:
+def _esc(text: str) -> str:
+    """Escape a plain string for safe use inside a reportlab Paragraph."""
+    return html.escape(text, quote=False)
+
+
+def _overview_page(student_name: str, grade: int | None, theme: Theme) -> list[Any]:
     story: list[Any] = []
 
-    title = f"{student_name}\u2019s Weekly Planner" if student_name else "Weekly Planner"
-    story.append(Paragraph(title, _title_style))
+    story.append(Paragraph(_esc(theme.title(student_name)), _title_style))
 
     grade_label = f"{grade}th Grade" if grade else "Middle School"
     story.append(
@@ -332,7 +327,7 @@ def _overview_page(student_name: str, grade: int | None) -> list[Any]:
     story.append(Spacer(1, 10))
 
     # Tests & quizzes
-    story.append(_section_bar("TESTS &amp; QUIZZES THIS WEEK"))
+    story.append(_section_bar(_esc(theme.tests_header)))
     story.append(
         _blank_rule_table(
             4,
@@ -348,7 +343,7 @@ def _overview_page(student_name: str, grade: int | None) -> list[Any]:
     story.append(Spacer(1, 10))
 
     # Projects
-    story.append(_section_bar("PROJECTS &amp; LONG-TERM ASSIGNMENTS"))
+    story.append(_section_bar(_esc(theme.projects_header)))
     story.append(
         _blank_rule_table(
             4,
@@ -364,7 +359,7 @@ def _overview_page(student_name: str, grade: int | None) -> list[Any]:
     story.append(Spacer(1, 10))
 
     # Goals
-    story.append(_section_bar("MY GOALS FOR THIS WEEK"))
+    story.append(_section_bar(_esc(theme.goals_header)))
     goals_tbl = Table(
         [[""], [""], [""]],
         colWidths=[7.5 * inch],
@@ -382,7 +377,7 @@ def _overview_page(student_name: str, grade: int | None) -> list[Any]:
     story.append(Spacer(1, 10))
 
     # How to use
-    story.append(_section_bar("HOW TO USE THIS PLANNER", color=ACCENT))
+    story.append(_section_bar(_esc(theme.howto_header), color=ACCENT))
     howto = (
         "1) Every class, write down the homework the second it's assigned "
         "\u2014 don't trust your memory. "
@@ -409,33 +404,58 @@ def _overview_page(student_name: str, grade: int | None) -> list[Any]:
     return story
 
 
-def _daily_page(
-    day_name: str,
-    label_suffix: str,
+def _homework_table(
     periods: list[dict[str, str]],
     color_map: _SubjectColorMap,
-) -> list[Any]:
-    """Build a single daily page. periods should already exclude Advisory/Lunch."""
-    story: list[Any] = []
+    row_height: float = 0.5 * inch,
+) -> Table:
+    """Build the class-by-class homework log table for a list of periods.
 
-    # Header
-    head = Table(
-        [
-            [
-                Paragraph(f"{day_name.upper()}{label_suffix}", _day_title_style),
-                Paragraph("Date: _______________", _day_sub_style),
-            ]
-        ],
-        colWidths=[5.5 * inch, 2.0 * inch],
-    )
-    head.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "BOTTOM")]))
-    story.append(head)
-    story.append(Spacer(1, 6))
+    Shared by daily pages and combined block pages (DRY).
+    """
+    header = [
+        Paragraph(_esc(h), _table_header_style)
+        for h in [
+            "Class",
+            "Homework / Assignment",
+            "Due Date",
+            "Materials Needed",
+            "Done",
+        ]
+    ]
+    data: list[list[Any]] = [header]
+    row_colors = []
+    for p in periods:
+        name_p = Paragraph(
+            f"<b>{_esc(p['name'])}</b><br/>"
+            f"<font size=7 color='#777777'>{_esc(p['start'])}\u2013{_esc(p['end'])}</font>",
+            _class_style,
+        )
+        data.append([name_p, "", "", "", ""])
+        row_colors.append(color_map.get(p["name"]))
 
-    # Top 3 priorities
-    story.append(
-        _section_bar("TODAY'S TOP 3 PRIORITIES  (pick the most important things to get done)")
-    )
+    col_widths = [1.5 * inch, 2.95 * inch, 0.85 * inch, 1.5 * inch, 0.5 * inch]
+    row_heights = [0.24 * inch] + [row_height] * len(periods)
+    t = Table(data, colWidths=col_widths, rowHeights=row_heights, repeatRows=1)
+    style_cmds: list[Any] = [
+        ("BACKGROUND", (0, 0), (-1, 0), NAVY),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("GRID", (0, 0), (-1, -1), 0.6, LIGHT_GRAY),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (4, 1), (4, -1), "CENTER"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+    ]
+    for i, c in enumerate(row_colors, start=1):
+        style_cmds.append(("BACKGROUND", (0, i), (0, i), c))
+    t.setStyle(TableStyle(style_cmds))
+    return t
+
+
+def _priorities_block(theme: Theme) -> list[Any]:
+    """Build the 'Top 3 Priorities' section (header + rows). Shared/DRY."""
+    block: list[Any] = [_section_bar(_esc(theme.priorities_header))]
     pri_rows = [
         [
             _checkbox_cell(),
@@ -456,58 +476,15 @@ def _daily_page(
             ]
         )
     )
-    story.append(pri_tbl)
-    story.append(Spacer(1, 8))
+    block.append(pri_tbl)
+    return block
 
-    # Homework log
-    story.append(_section_bar("CLASS-BY-CLASS HOMEWORK LOG"))
-    header = [
-        Paragraph(h, _table_header_style)
-        for h in [
-            "Class",
-            "Homework / Assignment",
-            "Due Date",
-            "Materials Needed",
-            "Done",
-        ]
-    ]
-    data: list[list[Any]] = [header]
-    row_colors = []
-    for p in periods:
-        name_p = Paragraph(
-            f"<b>{p['name']}</b><br/>"
-            f"<font size=7 color='#777777'>{p['start']}\u2013{p['end']}</font>",
-            _class_style,
-        )
-        data.append([name_p, "", "", "", ""])
-        row_colors.append(color_map.get(p["name"]))
 
-    col_widths = [1.5 * inch, 2.95 * inch, 0.85 * inch, 1.5 * inch, 0.5 * inch]
-    row_heights = [0.24 * inch] + [0.5 * inch] * len(periods)
-    t = Table(data, colWidths=col_widths, rowHeights=row_heights, repeatRows=1)
-    style_cmds: list[Any] = [
-        ("BACKGROUND", (0, 0), (-1, 0), NAVY),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.6, LIGHT_GRAY),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (4, 1), (4, -1), "CENTER"),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING", (0, 0), (-1, -1), 5),
-    ]
-    for i, c in enumerate(row_colors, start=1):
-        style_cmds.append(("BACKGROUND", (0, i), (0, i), c))
-    t.setStyle(TableStyle(style_cmds))
-    story.append(t)
-    story.append(Spacer(1, 8))
-
-    # EF tip
-    base_day = day_name.split("-")[0] if "-" in day_name else day_name
-    tip_key = base_day if base_day in EF_TIPS else "Monday"
-    tip_tbl = Table(
-        [[Paragraph(EF_TIPS[tip_key], _tip_style)]],
-        colWidths=[7.5 * inch],
-    )
+def _ef_tip_block(base_day: str, theme: Theme, rng: random.Random) -> list[Any]:
+    """Build the EF-tip box + optional easter egg. Shared/DRY."""
+    block: list[Any] = []
+    tip_text = theme.tip_for(base_day, rng)
+    tip_tbl = Table([[Paragraph(_esc(tip_text), _tip_style)]], colWidths=[7.5 * inch])
     tip_tbl.setStyle(
         TableStyle(
             [
@@ -519,12 +496,29 @@ def _daily_page(
             ]
         )
     )
-    story.append(tip_tbl)
-    story.append(Spacer(1, 8))
+    block.append(tip_tbl)
 
-    # End-of-day checklist
-    story.append(_section_bar("END-OF-DAY CHECKLIST", color=ACCENT))
-    story.append(
+    egg = theme.easter_egg(rng)
+    if egg:
+        block.append(Spacer(1, 4))
+        egg_tbl = Table([[Paragraph(_esc(egg), _egg_style)]], colWidths=[7.5 * inch])
+        egg_tbl.setStyle(
+            TableStyle(
+                [
+                    ("TOPPADDING", (0, 0), (-1, -1), 2),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ]
+            )
+        )
+        block.append(egg_tbl)
+    return block
+
+
+def _end_of_day_checklist(theme: Theme) -> list[Any]:
+    """Build the end-of-day checklist section. Shared/DRY."""
+    return [
+        _section_bar(_esc(theme.checklist_header), color=ACCENT),
         _checklist(
             [
                 "I wrote down homework for every class (or wrote \u201cnone\u201d).",
@@ -533,8 +527,91 @@ def _daily_page(
                 "I looked at the Tests & Projects box on the overview page.",
                 "Parent check: ______________________ (initial)",
             ]
+        ),
+    ]
+
+
+def _day_header(title_text: str) -> Table:
+    """Build the day-page header row (title + date line)."""
+    head = Table(
+        [
+            [
+                Paragraph(title_text, _day_title_style),
+                Paragraph("Date: _______________", _day_sub_style),
+            ]
+        ],
+        colWidths=[5.5 * inch, 2.0 * inch],
+    )
+    head.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "BOTTOM")]))
+    return head
+
+
+def _daily_page(
+    day_name: str,
+    label_suffix: str,
+    periods: list[dict[str, str]],
+    color_map: _SubjectColorMap,
+    theme: Theme,
+    rng: random.Random,
+) -> list[Any]:
+    """Build a single daily page. periods should already exclude Advisory/Lunch."""
+    base_day = day_name.split("-")[0] if "-" in day_name else day_name
+
+    story: list[Any] = [_day_header(f"{day_name.upper()}{label_suffix}"), Spacer(1, 6)]
+    story.extend(_priorities_block(theme))
+    story.append(Spacer(1, 8))
+    story.append(_section_bar(_esc(theme.homework_header)))
+    story.append(_homework_table(periods, color_map))
+    story.append(Spacer(1, 8))
+    story.extend(_ef_tip_block(base_day, theme, rng))
+    story.append(Spacer(1, 8))
+    story.extend(_end_of_day_checklist(theme))
+    return story
+
+
+def _combined_block_page(
+    day_name: str,
+    a_periods: list[dict[str, str]],
+    b_periods: list[dict[str, str]],
+    color_map: _SubjectColorMap,
+    theme: Theme,
+    rng: random.Random,
+) -> list[Any]:
+    """Build a combined block page with A-day and B-day stacked.
+
+    Saves a sheet of paper vs. two separate pages. Shares one priorities
+    section, one EF tip, and one checklist; each rotation gets its own
+    clearly-labeled homework table. Uses tighter row heights so both fit.
+    """
+    story: list[Any] = [
+        _day_header(f"{day_name.upper()} \u2014 A & B DAYS"),
+        Spacer(1, 3),
+    ]
+    story.append(
+        Paragraph(
+            "Two rotations on one page \u2014 use the table that matches today\u2019s "
+            "A/B day (check the overview page).",
+            _label_style,
         )
     )
+    story.append(Spacer(1, 5))
+
+    story.extend(_priorities_block(theme))
+    story.append(Spacer(1, 6))
+
+    # A-day table (tight rows so both rotations + footer fit on one page)
+    story.append(_section_bar(f"{_esc(theme.homework_header)} \u2014 A-DAY"))
+    story.append(_homework_table(a_periods, color_map, row_height=0.34 * inch))
+    story.append(Spacer(1, 5))
+
+    # B-day table
+    story.append(_section_bar(f"{_esc(theme.homework_header)} \u2014 B-DAY"))
+    story.append(_homework_table(b_periods, color_map, row_height=0.34 * inch))
+    story.append(Spacer(1, 6))
+
+    story.extend(_ef_tip_block(day_name, theme, rng))
+    story.append(Spacer(1, 6))
+    story.extend(_end_of_day_checklist(theme))
     return story
 
 
@@ -543,22 +620,43 @@ def _daily_page(
 # ---------------------------------------------------------------------------
 
 
+def _filter_periods(periods: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Drop Advisory and Lunch from a period list (prefix match)."""
+    return [p for p in periods if not any(p["name"].startswith(exc) for exc in _EXCLUDED_SUBJECTS)]
+
+
 def build_pdf(
     schedule: dict[str, list[dict[str, str]]],
     student_name: str = "",
     grade: int | None = None,
+    theme: Theme | str | None = None,
+    combine_blocks: bool = False,
+    seed: int | None = None,
 ) -> bytes:
-    """Generate an 8-page planner PDF from a parsed schedule.
+    """Generate a planner PDF from a parsed schedule.
 
     Args:
         schedule: Dict from ics_parser.parse_schedule() mapping day-type keys
                   to lists of period dicts with "period", "name", "start", "end".
         student_name: Student's first name (used in title). Falls back to generic.
         grade: Grade number (6, 7, 8). Falls back to "Middle School".
+        theme: A Theme instance, a theme key string, or None (classic).
+        combine_blocks: If True, Wed A/B and Thu A/B are each stacked onto one
+                        page (6 pages total instead of 8).
+        seed: Optional RNG seed for reproducible tip/easter-egg selection.
+              If None, selection is fresh each call (the "surprise" element).
 
     Returns:
         PDF file content as bytes.
     """
+    if theme is None:
+        theme = CLASSIC
+    elif isinstance(theme, str):
+        theme = get_theme(theme)
+
+    # Non-crypto: only used to pick which fun tip/easter-egg to show.
+    rng = random.Random(seed)  # noqa: S311
+
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
         buf,
@@ -573,28 +671,111 @@ def build_pdf(
     story: list[Any] = []
 
     # Page 1: Overview
-    story.extend(_overview_page(student_name, grade))
+    story.extend(_overview_page(student_name, grade, theme))
     story.append(PageBreak())
 
-    # Pages 2-8: Daily pages in canonical order
-    page_configs = [
-        ("Monday", "", "Monday"),
-        ("Tuesday", "", "Tuesday"),
-        ("Wednesday", " \u2014 A-day", "Wednesday-A"),
-        ("Wednesday", " \u2014 B-day", "Wednesday-B"),
-        ("Thursday", " \u2014 A-day", "Thursday-A"),
-        ("Thursday", " \u2014 B-day", "Thursday-B"),
-        ("Friday", "", "Friday"),
-    ]
+    # Build the daily-page sequence. Each entry is a callable returning a story.
+    pages: list[list[Any]] = []
 
-    for i, (day_display, suffix, schedule_key) in enumerate(page_configs):
-        periods = schedule.get(schedule_key, [])
-        # Filter out Advisory and Lunch from the homework log
-        filtered = [
-            p for p in periods if not any(p["name"].startswith(exc) for exc in _EXCLUDED_SUBJECTS)
-        ]
-        story.extend(_daily_page(day_display, suffix, filtered, color_map))
-        if i < len(page_configs) - 1:
+    pages.append(
+        _daily_page(
+            "Monday",
+            "",
+            _filter_periods(schedule.get("Monday", [])),
+            color_map,
+            theme,
+            rng,
+        )
+    )
+    pages.append(
+        _daily_page(
+            "Tuesday",
+            "",
+            _filter_periods(schedule.get("Tuesday", [])),
+            color_map,
+            theme,
+            rng,
+        )
+    )
+
+    if combine_blocks:
+        # Stack Wed-A + Wed-B on one page, Thu-A + Thu-B on one page (6 total).
+        pages.append(
+            _combined_block_page(
+                "Wednesday",
+                _filter_periods(schedule.get("Wednesday-A", [])),
+                _filter_periods(schedule.get("Wednesday-B", [])),
+                color_map,
+                theme,
+                rng,
+            )
+        )
+        pages.append(
+            _combined_block_page(
+                "Thursday",
+                _filter_periods(schedule.get("Thursday-A", [])),
+                _filter_periods(schedule.get("Thursday-B", [])),
+                color_map,
+                theme,
+                rng,
+            )
+        )
+    else:
+        pages.append(
+            _daily_page(
+                "Wednesday",
+                " \u2014 A-day",
+                _filter_periods(schedule.get("Wednesday-A", [])),
+                color_map,
+                theme,
+                rng,
+            )
+        )
+        pages.append(
+            _daily_page(
+                "Wednesday",
+                " \u2014 B-day",
+                _filter_periods(schedule.get("Wednesday-B", [])),
+                color_map,
+                theme,
+                rng,
+            )
+        )
+        pages.append(
+            _daily_page(
+                "Thursday",
+                " \u2014 A-day",
+                _filter_periods(schedule.get("Thursday-A", [])),
+                color_map,
+                theme,
+                rng,
+            )
+        )
+        pages.append(
+            _daily_page(
+                "Thursday",
+                " \u2014 B-day",
+                _filter_periods(schedule.get("Thursday-B", [])),
+                color_map,
+                theme,
+                rng,
+            )
+        )
+
+    pages.append(
+        _daily_page(
+            "Friday",
+            "",
+            _filter_periods(schedule.get("Friday", [])),
+            color_map,
+            theme,
+            rng,
+        )
+    )
+
+    for i, page_story in enumerate(pages):
+        story.extend(page_story)
+        if i < len(pages) - 1:
             story.append(PageBreak())
 
     doc.build(story)

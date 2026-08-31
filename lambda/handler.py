@@ -1,7 +1,14 @@
 """AWS Lambda handler for the planner PDF generator.
 
 Entry point: POST /generate
-Accepts JSON body with ics_url, optional student_name and grade.
+Accepts a JSON body:
+  - ics_url        (required) Blackbaud/Podium ICS feed URL
+  - student_name   (optional) first name for the title
+  - grade          (optional) 6, 7, or 8
+  - theme          (optional) theme key: classic|sports|video_games|music|slang
+                   (unknown/missing falls back to classic)
+  - combine_blocks (optional) if true, Wed/Thu A+B stack onto one page each
+                   (6 pages instead of 8)
 Returns PDF binary or a JSON error.
 
 PRIVACY:
@@ -48,11 +55,13 @@ def _error_response(status_code: int, message: str) -> dict[str, Any]:
     }
 
 
-def _validate_request(body: dict[str, Any]) -> tuple[str, str, int | None]:
+def _validate_request(
+    body: dict[str, Any],
+) -> tuple[str, str, int | None, str, bool]:
     """Validate and extract request parameters.
 
     Returns:
-        Tuple of (ics_url, student_name, grade).
+        Tuple of (ics_url, student_name, grade, theme, combine_blocks).
 
     Raises:
         ValueError: With a user-friendly message if validation fails.
@@ -81,7 +90,18 @@ def _validate_request(body: dict[str, Any]) -> tuple[str, str, int | None]:
         except ValueError, TypeError:
             grade = None
 
-    return ics_url, student_name, grade
+    # Theme is validated by the registry (unknown/None falls back to classic),
+    # so no error is raised here — just normalize to a string key.
+    theme = str(body.get("theme", "") or "").strip().lower()
+
+    # combine_blocks: accept truthy JSON bool or common string forms.
+    combine_raw = body.get("combine_blocks", False)
+    if isinstance(combine_raw, str):
+        combine_blocks = combine_raw.strip().lower() in ("true", "1", "yes", "on")
+    else:
+        combine_blocks = bool(combine_raw)
+
+    return ics_url, student_name, grade, theme, combine_blocks
 
 
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
@@ -101,7 +121,7 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     # Validate
     try:
-        ics_url, student_name, grade = _validate_request(body)
+        ics_url, student_name, grade, theme, combine_blocks = _validate_request(body)
     except ValueError as e:
         logger.info("Validation failed: %s", str(e))
         return _error_response(400, str(e))
@@ -121,11 +141,22 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         logger.warning("Parse failed: %s", str(e))
         return _error_response(422, str(e))
 
-    logger.info("Schedule parsed: %d day-types found", len(schedule))
+    logger.info(
+        "Schedule parsed: %d day-types found (theme=%s, combine=%s)",
+        len(schedule),
+        theme or "classic",
+        combine_blocks,
+    )
 
     # Generate PDF
     try:
-        pdf_bytes = build_pdf(schedule, student_name=student_name, grade=grade)
+        pdf_bytes = build_pdf(
+            schedule,
+            student_name=student_name,
+            grade=grade,
+            theme=theme,
+            combine_blocks=combine_blocks,
+        )
     except Exception:
         logger.exception("PDF generation failed")
         return _error_response(500, "An unexpected error occurred generating the PDF.")
