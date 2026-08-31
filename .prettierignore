@@ -8,3 +8,5 @@ lambda/
 infra/.terraform/
 infra/builds/
 .venv/
+.pytest_cache/
+node_modules/

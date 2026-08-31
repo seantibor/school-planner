@@ -26,6 +26,8 @@
     const icsUrl = icsInput.value.trim();
     const studentName = document.getElementById("student-name").value.trim();
     const grade = document.getElementById("grade").value;
+    const theme = document.getElementById("theme").value;
+    const combineBlocks = document.getElementById("combine-blocks").checked;
 
     // Client-side validation
     if (!icsUrl) {
@@ -50,6 +52,8 @@
       const payload = { ics_url: icsUrl };
       if (studentName) payload.student_name = studentName;
       if (grade) payload.grade = parseInt(grade, 10);
+      if (theme) payload.theme = theme;
+      if (combineBlocks) payload.combine_blocks = true;
 
       const response = await fetch(API_URL, {
         method: "POST",
@@ -88,6 +92,17 @@
   // Clear error styling when user starts typing
   icsInput.addEventListener("input", () => {
     icsInput.classList.remove("error");
+  });
+
+  // Update the theme description line when the selection changes
+  const themeSelect = document.getElementById("theme");
+  const themeDescription = document.getElementById("theme-description");
+  themeSelect.addEventListener("change", () => {
+    const selected = themeSelect.options[themeSelect.selectedIndex];
+    const description = selected.getAttribute("data-description");
+    if (description) {
+      themeDescription.textContent = description;
+    }
   });
 
   function setLoading(loading) {

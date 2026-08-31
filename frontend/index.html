@@ -56,6 +56,53 @@
               </select>
             </div>
           </div>
+          <div class="field">
+            <label for="theme">Theme <span class="optional">(let your kid pick)</span></label>
+            <select id="theme" name="theme">
+              <option
+                value="classic"
+                data-description="The original clean planner. No frills, just focus."
+              >
+                Classic
+              </option>
+              <option
+                value="sports"
+                data-description="Your week as a game plan — practices, plays, and game-day prep."
+              >
+                Sports
+              </option>
+              <option
+                value="video_games"
+                data-description="Your week as a quest log — main quests, side quests, and XP."
+              >
+                Video Games
+              </option>
+              <option
+                value="music"
+                data-description="Your week as a setlist — rehearsals, tracks, and the big show."
+              >
+                Music
+              </option>
+              <option
+                value="slang"
+                data-description="Same planner, playful internet slang. Lock in and get the W."
+              >
+                Gen-Alpha Slang
+              </option>
+            </select>
+            <small class="hint" id="theme-description">
+              The original clean planner. No frills, just focus.
+            </small>
+          </div>
+          <div class="field field--checkbox">
+            <label class="checkbox-label">
+              <input type="checkbox" id="combine-blocks" name="combine_blocks" />
+              <span
+                >Combine Wednesday &amp; Thursday A/B days onto single pages
+                <span class="optional">(saves paper — 6 pages instead of 8)</span></span
+              >
+            </label>
+          </div>
           <button type="submit" class="btn-primary" id="submit-btn">
             <span class="btn-text">Generate Planner</span>
             <span class="btn-spinner" aria-hidden="true" hidden></span>
