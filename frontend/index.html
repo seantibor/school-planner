@@ -103,6 +103,22 @@
               >
             </label>
           </div>
+          <div class="field field--checkbox">
+            <label class="checkbox-label">
+              <input type="checkbox" id="remember" name="remember" />
+              <span
+                >Save these details in my browser for next time
+                <span class="optional"
+                  >(stays on this device — never sent to us. Don't use on a shared or public
+                  computer.)</span
+                ></span
+              >
+            </label>
+            <div class="saved-status" id="saved-status" hidden>
+              <span id="saved-status-text"></span>
+              <button type="button" class="link-btn" id="clear-saved">Clear saved data</button>
+            </div>
+          </div>
           <button type="submit" class="btn-primary" id="submit-btn">
             <span class="btn-text">Generate Planner</span>
             <span class="btn-spinner" aria-hidden="true" hidden></span>
@@ -140,14 +156,23 @@
         <p>We take your family's data seriously. Here's exactly what happens:</p>
         <ul>
           <li>
-            <strong>Your ICS URL is never stored, logged, or retained.</strong> It is used for a
-            single fetch to read your child's schedule, then immediately discarded.
+            <strong>Your ICS URL is never stored, logged, or retained on our servers.</strong> It is
+            used for a single fetch to read your child's schedule, then immediately discarded.
           </li>
           <li>
             <strong>Schedule data never touches a database or file system.</strong> It exists only
             in memory for the few seconds it takes to generate your PDF.
           </li>
           <li><strong>No analytics, no tracking, no cookies.</strong> This page is static HTML.</li>
+          <li>
+            <strong>Optional "save in my browser" is 100% on your device.</strong> If you tick that
+            box, your details (URL, name, grade, theme, and options) are saved in this browser's
+            local storage — never sent to us or anyone else. They're used only to pre-fill the form
+            next time you visit on this device. Unchecking the box, or clicking "Clear saved data,"
+            erases them immediately, and they auto-expire after 90 days if unused. Please don't use
+            it on a shared or public computer, since the URL is a private key to your child's
+            calendar.
+          </li>
           <li>
             <strong>The code is open source.</strong> You can verify every claim by reading the
             <a href="https://github.com/seantibor/school-planner" target="_blank" rel="noopener"
